@@ -1,0 +1,687 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="theme-color" content="#0a0a0a">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>LangitDeveloper</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://unpkg.com/lucide@latest"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
+<style>
+:root{--bg:#0a0a0a;--card:#161616;--border:#262626;--accent:#22c55e;--accent-light:#4ade80;--text:#fafafa;--text2:#a3a3a3;--muted:#525252;--danger:#ff4757;}
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{font-family:'Inter',sans-serif;background:#050505;height:100dvh;width:100vw;overflow:hidden;color:var(--text);-webkit-font-smoothing:antialiased}
+
+/* APP CONTAINER - FULLSCREEN MOBILE */
+.app{position:fixed;inset:0;display:flex;flex-direction:column;background:var(--bg);overflow:hidden}
+
+/* NOTCH / DYNAMIC ISLAND AREA */
+.notch-area{height:44px;background:var(--bg);flex-shrink:0;position:relative;z-index:100}
+.notch{position:absolute;top:0;left:50%;transform:translateX(-50%);width:126px;height:34px;background:#1a1a1a;border-bottom-left-radius:18px;border-bottom-right-radius:18px}
+
+/* STATUS BAR */
+.status-bar{position:absolute;top:0;left:0;right:0;height:44px;display:flex;justify-content:space-between;align-items:center;padding:0 28px;padding-top:8px;z-index:101;pointer-events:none}
+.status-bar>*{pointer-events:auto}
+.status-time{font-size:14px;font-weight:600;color:var(--accent);letter-spacing:0.3px}
+.status-right{display:flex;align-items:center;gap:4px}
+.status-signal{display:flex;align-items:flex-end;gap:2px;height:12px}
+.signal-bar{width:3px;background:var(--accent);border-radius:1px}
+.signal-bar:nth-child(1){height:4px}
+.signal-bar:nth-child(2){height:7px}
+.signal-bar:nth-child(3){height:10px}
+.signal-bar:nth-child(4){height:12px}
+.status-wifi{color:var(--accent);width:14px;height:14px}
+.status-battery{display:flex;align-items:center;gap:3px;color:var(--accent);font-size:12px;font-weight:600}
+.battery-icon{width:22px;height:11px;border:1.5px solid var(--accent);border-radius:3px;position:relative;padding:2px}
+.battery-icon::after{content:'';position:absolute;right:-3px;top:3px;width:2px;height:4px;background:var(--accent);border-radius:0 1px 1px 0}
+.battery-fill{height:100%;width:85%;background:var(--accent);border-radius:1px}
+
+/* MAIN SCREEN - SCROLLABLE */
+.screen{flex:1;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;scrollbar-width:none;padding:0 20px 20px}
+.screen::-webkit-scrollbar{display:none}
+
+/* NAV HEADER */
+.nav-header{display:flex;justify-content:space-between;align-items:center;padding-top:8px;margin-bottom:24px}
+.logo{font-family:'Space Grotesk',sans-serif;font-size:20px;font-weight:700;letter-spacing:-0.5px}
+.logo span{color:var(--accent)}
+.menu-btn{background:none;border:none;color:var(--text2);cursor:pointer;padding:8px;border-radius:12px;transition:all .3s ease}
+.menu-btn:hover{color:var(--accent);background:rgba(255,255,255,0.05)}
+
+/* SECTIONS */
+.section{display:none;animation:fadeIn .4s ease-out}
+.section.active{display:block}
+@keyframes fadeIn{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
+
+/* HOME / HERO */
+.hero{text-align:center;padding:8px 0 24px}
+.avatar-wrap{position:relative;width:120px;height:120px;margin:0 auto 20px}
+.avatar-ring{position:absolute;inset:-3px;border-radius:50%;background:conic-gradient(from 0deg,var(--accent),var(--accent-light),var(--accent));animation:spin 10s linear infinite;opacity:.5}
+@keyframes spin{to{transform:rotate(360deg)}}
+.avatar{position:relative;width:100%;height:100%;border-radius:50%;border:3px solid var(--bg);overflow:hidden;background:linear-gradient(135deg,#1a1a1a,#2a2a2a)}
+.avatar img{width:100%;height:100%;object-fit:cover}
+.avatar-fallback{width:100%;height:100%;display:flex;align-items:center;justify-content:center}
+.avatar-fallback svg{width:48px;height:48px;color:var(--accent)}
+.status-badge{display:inline-flex;align-items:center;gap:6px;background:rgba(34,197,94,.1);border:1px solid rgba(34,197,94,.2);color:var(--accent);padding:6px 14px;border-radius:20px;font-size:11px;font-weight:600;margin-bottom:16px}
+.status-dot{width:6px;height:6px;background:var(--accent);border-radius:50%;animation:pulse 2s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+.hero h1{font-family:'Space Grotesk',sans-serif;font-size:32px;font-weight:700;line-height:1.1;margin-bottom:8px}
+.hero .subtitle{font-size:15px;color:var(--text2);margin-bottom:24px}
+
+/* BUTTONS */
+.btn-primary{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;padding:16px;background:var(--accent);color:#000;border:none;border-radius:16px;font-size:15px;font-weight:700;cursor:pointer;transition:all .3s;margin-bottom:10px}
+.btn-primary:hover{background:var(--accent-light);transform:translateY(-2px);box-shadow:0 12px 30px rgba(34,197,94,.25)}
+.btn-secondary{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;padding:16px;background:transparent;color:var(--text2);border:1.5px solid var(--border);border-radius:16px;font-size:15px;font-weight:600;cursor:pointer;transition:all .3s}
+.btn-secondary:hover{border-color:var(--accent);color:var(--accent);background:rgba(34,197,94,.05)}
+
+/* STATS */
+.stats-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:24px}
+.stat-card{background:var(--card);border:1.5px solid var(--border);border-radius:20px;padding:18px 8px;text-align:center;transition:all .3s}
+.stat-card:hover{border-color:var(--accent);transform:translateY(-3px);box-shadow:0 8px 25px rgba(34,197,94,.1)}
+.stat-card.active{border-color:var(--accent);background:rgba(34,197,94,.05);box-shadow:0 0 20px rgba(34,197,94,.15)}
+.stat-icon{color:var(--accent);margin-bottom:8px}
+.stat-value{font-family:'Space Grotesk',sans-serif;font-size:22px;font-weight:700}
+.stat-label{font-size:10px;color:var(--muted);margin-top:4px;text-transform:uppercase;letter-spacing:.5px}
+
+/* TITLES */
+.section-title{font-family:'Space Grotesk',sans-serif;font-size:24px;font-weight:700;margin-bottom:4px;display:flex;align-items:center;gap:10px}
+.section-title svg{color:var(--accent)}
+.section-subtitle{font-size:13px;color:var(--muted);margin-bottom:20px}
+
+/* ABOUT */
+.about-card{background:var(--card);border:1.5px solid var(--border);border-radius:24px;padding:22px;margin-bottom:16px}
+.about-card h3{font-size:14px;font-weight:600;color:var(--accent);margin-bottom:10px;display:flex;align-items:center;gap:8px}
+.about-card p{font-size:13px;color:var(--text2);line-height:1.7}
+.skill-tags{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}
+.skill-tag{background:rgba(34,197,94,.1);border:1px solid rgba(34,197,94,.2);color:var(--accent);padding:7px 14px;border-radius:12px;font-size:12px;font-weight:600;transition:all .3s}
+.skill-tag:hover{background:rgba(34,197,94,.2);transform:scale(1.05)}
+.timeline-item{position:relative;padding-left:24px;padding-bottom:20px;border-left:2px solid var(--border)}
+.timeline-item::before{content:'';position:absolute;left:-5px;top:0;width:8px;height:8px;background:var(--accent);border-radius:50%;box-shadow:0 0 0 4px rgba(34,197,94,.2)}
+.timeline-item:last-child{border-left:2px solid transparent}
+.timeline-date{font-size:11px;color:var(--accent);font-weight:600;margin-bottom:4px}
+.timeline-title{font-size:15px;font-weight:700;margin-bottom:4px}
+.timeline-desc{font-size:12px;color:var(--muted)}
+
+/* PROJECTS */
+.project-card{background:var(--card);border:1.5px solid var(--border);border-radius:24px;overflow:hidden;margin-bottom:16px;transition:all .3s}
+.project-card:hover{border-color:rgba(34,197,94,.3);transform:translateY(-3px);box-shadow:0 12px 30px rgba(0,0,0,.5)}
+.project-img{height:160px;display:flex;align-items:center;justify-content:center;position:relative;overflow:hidden}
+.project-img.chat-bg{background:linear-gradient(135deg,#0f2818,#1a4d2e,#0f2818);background-size:200% 200%;animation:gradShift 5s ease infinite}
+.project-img.shop-bg{background:linear-gradient(135deg,#1a0a2e,#2d1b4e,#1a0a2e);background-size:200% 200%;animation:gradShift 5s ease infinite}
+.project-img.dash-bg{background:linear-gradient(135deg,#0d1b2a,#1b2838,#0d1b2a);background-size:200% 200%;animation:gradShift 5s ease infinite}
+@keyframes gradShift{0%{background-position:0% 50%}50%{background-position:100% 50%}100%{background-position:0% 50%}}
+.project-img::before{content:'';position:absolute;inset:0;background:linear-gradient(45deg,transparent 30%,rgba(34,197,94,.06) 50%,transparent 70%);animation:shimmer 3s infinite}
+@keyframes shimmer{0%{transform:translateX(-100%)}100%{transform:translateX(100%)}}
+.project-img svg{width:40px;height:40px;color:var(--accent);opacity:.7}
+.project-info{padding:18px}
+.project-info h3{font-size:17px;font-weight:700;margin-bottom:6px}
+.project-info p{font-size:13px;color:var(--muted);margin-bottom:14px;line-height:1.5}
+.project-meta{display:flex;justify-content:space-between;align-items:center}
+.project-tech{display:flex;gap:6px}
+.tech-dot{width:8px;height:8px;border-radius:50%}
+.project-link{display:flex;align-items:center;gap:4px;color:var(--accent);font-size:13px;font-weight:600;text-decoration:none;cursor:pointer;background:none;border:none;transition:gap .3s}
+.project-link:hover{gap:8px}
+
+/* CONTACT */
+.contact-form{background:var(--card);border:1.5px solid var(--border);border-radius:24px;padding:22px}
+.form-group{margin-bottom:16px}
+.form-group label{display:block;font-size:12px;font-weight:600;color:var(--text2);margin-bottom:6px}
+.form-group input,.form-group textarea{width:100%;background:var(--bg);border:1.5px solid var(--border);border-radius:14px;padding:14px;color:var(--text);font-size:14px;font-family:'Inter',sans-serif;outline:none;transition:all .3s}
+.form-group input:focus,.form-group textarea:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(34,197,94,.1)}
+.form-group textarea{resize:none;height:100px}
+.social-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-top:20px}
+.social-btn{display:flex;flex-direction:column;align-items:center;gap:6px;padding:16px 8px;background:var(--card);border:1.5px solid var(--border);border-radius:18px;color:var(--text2);text-decoration:none;transition:all .3s;cursor:pointer}
+.social-btn:hover{border-color:var(--accent);color:var(--accent);background:rgba(34,197,94,.05);transform:translateY(-3px)}
+.social-btn span{font-size:10px;font-weight:600}
+
+/* BOTTOM NAV - HOME INDICATOR STYLE */
+.bottom-nav{display:flex;justify-content:space-around;align-items:center;padding:8px 20px 28px;background:rgba(10,10,10,.95);backdrop-filter:blur(20px);border-top:1px solid var(--border);z-index:50;flex-shrink:0;position:relative}
+.bottom-nav::after{content:'';position:absolute;bottom:8px;left:50%;transform:translateX(-50%);width:134px;height:5px;background:#fff;border-radius:3px;opacity:.3}
+.nav-item{display:flex;flex-direction:column;align-items:center;gap:3px;background:none;border:none;color:var(--muted);cursor:pointer;transition:all .3s;padding:4px 16px;border-radius:12px}
+.nav-item:hover{color:var(--text2)}
+.nav-item.active{color:var(--accent)}
+.nav-item span{font-size:10px;font-weight:600}
+
+/* TOAST */
+.toast{position:fixed;top:50px;left:50%;transform:translateX(-50%) translateY(-80px);background:var(--card);border:1px solid var(--accent);color:var(--accent);padding:12px 24px;border-radius:14px;font-size:13px;font-weight:600;opacity:0;transition:all .4s ease;z-index:3000;pointer-events:none}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+
+/* ===== SHOP APP ===== */
+.shop-app{display:none;flex-direction:column;height:100%;animation:fadeIn .3s ease-out}
+.shop-app.active{display:flex}
+.shop-header{display:flex;align-items:center;gap:12px;padding:12px 20px;background:rgba(10,10,10,.95);backdrop-filter:blur(20px);border-bottom:1px solid var(--border);z-index:50;flex-shrink:0}
+.shop-header .back-btn{background:none;border:none;color:var(--accent);cursor:pointer;padding:6px;border-radius:10px;transition:all .3s}
+.shop-header .back-btn:hover{background:rgba(34,197,94,.1)}
+.shop-header-info{flex:1}
+.shop-header-info h3{font-size:17px;font-weight:700}
+.shop-header-info p{font-size:12px;color:var(--muted)}
+.shop-cart-btn{background:none;border:none;color:var(--text2);cursor:pointer;padding:6px;border-radius:10px;position:relative;transition:all .3s}
+.shop-cart-btn:hover{color:var(--accent);background:rgba(34,197,94,.1)}
+.shop-content{flex:1;overflow-y:auto;padding:16px 20px;scrollbar-width:thin;scrollbar-color:var(--border) transparent}
+.shop-content::-webkit-scrollbar{width:4px}
+.shop-content::-webkit-scrollbar-thumb{background:var(--border);border-radius:4px}
+.shop-hero{background:linear-gradient(135deg,rgba(34,197,94,.1),rgba(34,197,94,.02));border:1.5px solid var(--border);border-radius:24px;padding:28px 20px;text-align:center;margin-bottom:20px}
+.shop-hero h2{font-family:'Space Grotesk',sans-serif;font-size:24px;font-weight:700;margin-bottom:6px}
+.shop-hero p{font-size:13px;color:var(--text2)}
+.shop-cats{display:flex;gap:8px;margin-bottom:20px;overflow-x:auto;padding-bottom:4px;scrollbar-width:none}
+.shop-cats::-webkit-scrollbar{display:none}
+.shop-cat{flex-shrink:0;padding:8px 16px;background:var(--card);border:1.5px solid var(--border);border-radius:20px;color:var(--text2);font-size:12px;font-weight:600;cursor:pointer;transition:all .3s}
+.shop-cat:hover,.shop-cat.active{background:var(--accent);color:#000;border-color:var(--accent)}
+
+/* SHOP PRODUCT */
+.s-product{background:var(--card);border:1.5px solid var(--border);border-radius:24px;overflow:hidden;margin-bottom:16px;transition:all .3s}
+.s-product:hover{border-color:rgba(34,197,94,.3);transform:translateY(-2px);box-shadow:0 10px 25px rgba(0,0,0,.4)}
+.s-product-img{height:200px;position:relative;overflow:hidden}
+.s-product-img img{width:100%;height:100%;object-fit:cover;transition:transform .5s ease}
+.s-product:hover .s-product-img img{transform:scale(1.05)}
+.s-badge{position:absolute;top:12px;left:12px;padding:4px 10px;border-radius:8px;font-size:10px;font-weight:700}
+.s-badge.hot{background:#ff4757;color:#fff}
+.s-badge.new{background:#3742fa;color:#fff}
+.s-product-info{padding:18px}
+.s-product-info h4{font-size:16px;font-weight:700;margin-bottom:6px}
+.s-product-info p{font-size:13px;color:var(--muted);line-height:1.5;margin-bottom:12px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.s-price{display:flex;align-items:center;gap:8px;margin-bottom:14px}
+.s-price-cur{font-family:'Space Grotesk',sans-serif;font-size:22px;font-weight:700;color:var(--accent-light)}
+.s-price-old{font-size:14px;color:var(--muted);text-decoration:line-through}
+.s-price-disc{background:rgba(255,71,87,.15);color:#ff4757;padding:2px 8px;border-radius:6px;font-size:10px;font-weight:700}
+.s-actions{display:flex;gap:8px}
+.s-btn-buy{flex:1;display:flex;align-items:center;justify-content:center;gap:6px;padding:12px;background:var(--accent);color:#000;border:none;border-radius:14px;font-size:14px;font-weight:700;cursor:pointer;transition:all .3s}
+.s-btn-buy:hover{background:var(--accent-light);transform:translateY(-1px)}
+.s-btn-dtl{flex:1;display:flex;align-items:center;justify-content:center;gap:6px;padding:12px;background:transparent;color:var(--text2);border:1.5px solid var(--border);border-radius:14px;font-size:14px;font-weight:600;cursor:pointer;transition:all .3s}
+.s-btn-dtl:hover{border-color:var(--accent);color:var(--accent)}
+
+/* DETAIL MODAL */
+.dtl-overlay{position:fixed;inset:0;background:rgba(0,0,0,.92);backdrop-filter:blur(20px);z-index:2000;display:none;align-items:flex-end;justify-content:center;opacity:0;transition:opacity .3s ease}
+.dtl-overlay.active{display:flex;opacity:1}
+.dtl-modal{background:var(--bg);border:1.5px solid var(--border);border-radius:28px 28px 0 0;width:100%;max-height:85vh;overflow:hidden;display:flex;flex-direction:column;transform:translateY(100%);transition:transform .4s cubic-bezier(.32,.72,0,1)}
+.dtl-overlay.active .dtl-modal{transform:translateY(0)}
+.dtl-img{height:220px;position:relative;overflow:hidden}
+.dtl-img img{width:100%;height:100%;object-fit:cover}
+.dtl-close{position:absolute;top:12px;right:12px;width:36px;height:36px;background:rgba(0,0,0,.6);backdrop-filter:blur(10px);border:1px solid rgba(255,255,255,.1);border-radius:50%;color:#fff;display:flex;align-items:center;justify-content:center;cursor:pointer;transition:all .3s}
+.dtl-close:hover{background:rgba(255,255,255,.2)}
+.dtl-body{padding:24px 20px;overflow-y:auto}
+.dtl-body h2{font-family:'Space Grotesk',sans-serif;font-size:22px;font-weight:700;margin-bottom:8px}
+.dtl-desc{font-size:14px;color:var(--text2);line-height:1.7;margin-bottom:18px}
+.dtl-features{display:flex;flex-direction:column;gap:10px;margin-bottom:18px}
+.dtl-feat{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--text2)}
+.dtl-feat svg{color:var(--accent);width:16px;height:16px;flex-shrink:0}
+.dtl-footer{padding:0 20px 24px;display:flex;gap:10px}
+
+/* CHAT APP */
+.chat-app{display:none;flex-direction:column;height:100%;animation:fadeIn .3s ease-out}
+.chat-app.active{display:flex}
+.chat-header{display:flex;align-items:center;gap:12px;padding:12px 20px;background:rgba(10,10,10,.95);backdrop-filter:blur(20px);border-bottom:1px solid var(--border);z-index:50;flex-shrink:0}
+.chat-header .back-btn{background:none;border:none;color:var(--accent);cursor:pointer;padding:6px;border-radius:10px;transition:all .3s}
+.chat-header .back-btn:hover{background:rgba(34,197,94,.1)}
+.chat-header-info{flex:1}
+.chat-header-info h3{font-size:17px;font-weight:700}
+.chat-header-info p{font-size:12px;color:var(--accent);display:flex;align-items:center;gap:4px}
+.online-dot{width:7px;height:7px;background:var(--accent);border-radius:50%;animation:pulse 2s infinite}
+.chat-actions{display:flex;gap:8px}
+.chat-actions button{background:none;border:none;color:var(--muted);cursor:pointer;padding:6px;border-radius:8px;transition:all .3s}
+.chat-actions button:hover{color:var(--accent);background:rgba(34,197,94,.1)}
+.chat-msgs{flex:1;overflow-y:auto;padding:16px 20px;display:flex;flex-direction:column;gap:10px;scrollbar-width:thin;scrollbar-color:var(--border) transparent}
+.chat-msgs::-webkit-scrollbar{width:4px}
+.chat-msgs::-webkit-scrollbar-thumb{background:var(--border);border-radius:4px}
+.msg{max-width:82%;display:flex;flex-direction:column;gap:3px;animation:msgSlide .3s ease-out}
+@keyframes msgSlide{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+.msg.me{align-self:flex-end}
+.msg.other{align-self:flex-start}
+.msg-bubble{padding:10px 14px;border-radius:18px;font-size:14px;line-height:1.5;word-break:break-word}
+.msg.me .msg-bubble{background:linear-gradient(135deg,#16a34a,#22c55e);color:#fff;border-bottom-right-radius:4px}
+.msg.other .msg-bubble{background:var(--card);color:var(--text);border:1.5px solid var(--border);border-bottom-left-radius:4px}
+.msg-sender{font-size:11px;font-weight:600;color:var(--accent);margin-bottom:2px}
+.msg-time{font-size:10px;color:var(--muted);margin-top:2px}
+.msg.me .msg-time{align-self:flex-end}
+.msg.other .msg-time{align-self:flex-start}
+.sys-msg{align-self:center;font-size:12px;color:var(--muted);background:var(--card);padding:6px 14px;border-radius:12px;border:1.5px solid var(--border);margin:6px 0}
+.chat-input-area{padding:12px 20px 32px;background:rgba(10,10,10,.95);backdrop-filter:blur(20px);border-top:1px solid var(--border);display:flex;gap:10px;align-items:flex-end;flex-shrink:0}
+.chat-input-wrap{flex:1;background:var(--card);border:1.5px solid var(--border);border-radius:24px;padding:12px 16px;display:flex;align-items:center;transition:all .3s}
+.chat-input-wrap:focus-within{border-color:var(--accent)}
+.chat-input{flex:1;background:none;border:none;color:var(--text);font-size:14px;font-family:'Inter',sans-serif;outline:none}
+.chat-input::placeholder{color:var(--muted)}
+.chat-send{width:44px;height:44px;border-radius:50%;background:var(--accent);border:none;color:#000;display:flex;align-items:center;justify-content:center;cursor:pointer;transition:all .3s;flex-shrink:0}
+.chat-send:hover{background:var(--accent-light);transform:scale(1.05)}
+.chat-send:active{transform:scale(.95)}
+.typing-ind{display:none;align-self:flex-start;background:var(--card);border:1.5px solid var(--border);border-radius:18px;border-bottom-left-radius:4px;padding:12px 16px;gap:4px}
+.typing-ind.active{display:flex}
+.tdot{width:6px;height:6px;background:var(--muted);border-radius:50%;animation:tdot 1.4s infinite ease-in-out both}
+.tdot:nth-child(1){animation-delay:-.32s}
+.tdot:nth-child(2){animation-delay:-.16s}
+@keyframes tdot{0%,80%,100%{transform:scale(.6);opacity:.4}40%{transform:scale(1);opacity:1}}
+
+/* NAME MODAL */
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.88);backdrop-filter:blur(15px);z-index:1000;display:none;align-items:center;justify-content:center;opacity:0;transition:opacity .3s ease}
+.modal-overlay.active{display:flex;opacity:1}
+.modal-box{background:var(--card);border:1.5px solid var(--border);border-radius:28px;padding:32px;width:88%;max-width:340px;text-align:center;transform:scale(.9);transition:transform .3s ease;box-shadow:0 25px 60px rgba(0,0,0,.6),0 0 50px rgba(34,197,94,.1)}
+.modal-overlay.active .modal-box{transform:scale(1)}
+.modal-icon{width:64px;height:64px;background:rgba(34,197,94,.1);border:1.5px solid rgba(34,197,94,.2);border-radius:20px;display:flex;align-items:center;justify-content:center;margin:0 auto 20px;color:var(--accent)}
+.modal-box h3{font-family:'Space Grotesk',sans-serif;font-size:20px;font-weight:700;margin-bottom:6px}
+.modal-box p{font-size:14px;color:var(--text2);margin-bottom:24px}
+.modal-input{width:100%;background:var(--bg);border:1.5px solid var(--border);border-radius:14px;padding:14px 16px;color:var(--text);font-size:15px;font-family:'Inter',sans-serif;outline:none;margin-bottom:18px;transition:all .3s}
+.modal-input:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(34,197,94,.1)}
+.modal-btn{width:100%;padding:16px;background:var(--accent);color:#000;border:none;border-radius:14px;font-size:15px;font-weight:700;cursor:pointer;transition:all .3s}
+.modal-btn:hover{background:var(--accent-light)}
+
+/* USERS PANEL */
+.users-panel{position:absolute;top:56px;right:0;width:190px;background:var(--card);border:1.5px solid var(--border);border-radius:20px 0 0 20px;padding:14px;transform:translateX(100%);transition:transform .3s ease;z-index:60;max-height:320px;overflow-y:auto}
+.users-panel.active{transform:translateX(0)}
+.users-panel h4{font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:12px}
+.user-item{display:flex;align-items:center;gap:8px;padding:7px 0;font-size:13px;color:var(--text2)}
+.user-dot{width:7px;height:7px;background:var(--accent);border-radius:50%;animation:pulse 2s infinite;flex-shrink:0}
+</style>
+</head>
+<body>
+<div class="app">
+<!-- NOTCH -->
+<div class="notch-area"><div class="notch"></div></div>
+
+<!-- STATUS BAR -->
+<div class="status-bar">
+<span class="status-time" id="clock">13:24</span>
+<div class="status-right">
+<div class="status-signal"><div class="signal-bar"></div><div class="signal-bar"></div><div class="signal-bar"></div><div class="signal-bar"></div></div>
+<i data-lucide="wifi" class="status-wifi"></i>
+<div class="status-battery"><span id="batteryText">100</span><div class="battery-icon"><div class="battery-fill"></div></div></div>
+</div>
+</div>
+
+<!-- TOAST -->
+<div class="toast" id="toast">Message sent!</div>
+
+<!-- NAME MODAL -->
+<div class="modal-overlay" id="nameModal">
+<div class="modal-box">
+<div class="modal-icon"><i data-lucide="message-circle" style="width:28px;height:28px"></i></div>
+<h3>Join Global Chat</h3>
+<p>Masukkan nama untuk mulai chat real-time dengan orang lain</p>
+<input type="text" class="modal-input" id="usernameInput" placeholder="Nama kamu..." maxlength="20">
+<button class="modal-btn" onclick="confirmJoinChat()">
+<i data-lucide="log-in" style="width:16px;height:16px;display:inline;vertical-align:middle;margin-right:4px"></i>
+Konfirmasi & Masuk
+</button>
+</div>
+</div>
+
+<!-- DETAIL MODAL -->
+<div class="dtl-overlay" id="detailModal">
+<div class="dtl-modal">
+<div class="dtl-img"><img src="" alt="Product" id="detailImgSrc"><button class="dtl-close" onclick="closeDetailModal()"><i data-lucide="x" style="width:18px;height:18px"></i></button></div>
+<div class="dtl-body">
+<h2 id="detailTitle">Product</h2>
+<div class="s-price" style="margin-bottom:10px"><span class="s-price-cur" id="detailPrice">Rp 0</span></div>
+<p class="dtl-desc" id="detailDesc">...</p>
+<div class="dtl-features" id="detailFeatures"></div>
+</div>
+<div class="dtl-footer">
+<button class="s-btn-buy" onclick="buyFromDetail()"><i data-lucide="shopping-cart" style="width:16px;height:16px"></i> Buy Now</button>
+<button class="s-btn-dtl" onclick="closeDetailModal()"><i data-lucide="x" style="width:16px;height:16px"></i> Close</button>
+</div>
+</div>
+</div>
+
+<!-- USERS PANEL -->
+<div class="users-panel" id="usersPanel"><h4>Online Users</h4><div id="usersList"></div></div>
+
+<!-- MAIN SCREEN -->
+<div class="screen" id="mainScreen">
+<!-- HOME -->
+<div class="section active" id="home">
+<div class="nav-header"><div class="logo">Langit<span>Dev</span></div><button class="menu-btn" onclick="showToast('Menu')"><i data-lucide="menu" style="width:22px;height:22px"></i></button></div>
+<div class="hero">
+<div class="avatar-wrap">
+<div class="avatar-ring"></div>
+<div class="avatar">
+<img src="https://files.catbox.moe/j4j2bh.jpeg" alt="Langit" id="avatarImg" onerror="this.style.display='none';document.getElementById('avatarFallback').style.display='flex'">
+<div class="avatar-fallback" id="avatarFallback" style="display:none"><i data-lucide="code-2"></i></div>
+</div>
+</div>
+<h1>Langit<br>Developer</h1>
+<p class="subtitle">Full Newbie Developer</p>
+<button class="btn-primary" onclick="navigateTo('contact')"><i data-lucide="send" style="width:18px;height:18px"></i> Contact Me</button>
+<button class="btn-secondary" onclick="navigateTo('projects')"><i data-lucide="folder-open" style="width:18px;height:18px"></i> View Projects</button>
+</div>
+<div class="stats-grid">
+<div class="stat-card"><div class="stat-icon"><i data-lucide="code" style="width:22px;height:22px"></i></div><div class="stat-value">3+</div><div class="stat-label">Projects</div></div>
+<div class="stat-card active"><div class="stat-icon"><i data-lucide="users" style="width:22px;height:22px"></i></div><div class="stat-value">10099+</div><div class="stat-label">Friends</div></div>
+<div class="stat-card"><div class="stat-icon"><i data-lucide="award" style="width:22px;height:22px"></i></div><div class="stat-value">3</div><div class="stat-label">Years</div></div>
+</div>
+</div>
+
+<!-- ABOUT -->
+<div class="section" id="about">
+<div class="nav-header"><div class="logo">Langit<span>Dev</span></div><button class="menu-btn" onclick="navigateTo('home')"><i data-lucide="arrow-left" style="width:22px;height:22px"></i></button></div>
+<h2 class="section-title"><i data-lucide="user" style="width:22px;height:22px"></i>About Me</h2>
+<p class="section-subtitle">Passionate developer from Indonesia</p>
+<div class="about-card"><h3><i data-lucide="quote" style="width:16px;height:16px"></i>Bio</h3><p>Hello! I'm Langit, a passionate Full Stack Developer specializing in modern web technologies. I create elegant, high-performance applications with attention to detail and user experience.</p></div>
+<div class="about-card"><h3><i data-lucide="zap" style="width:16px;height:16px"></i>Skills</h3><div class="skill-tags"><span class="skill-tag">React</span><span class="skill-tag">Next.js</span><span class="skill-tag">TypeScript</span><span class="skill-tag">Node.js</span><span class="skill-tag">Python</span><span class="skill-tag">Tailwind</span><span class="skill-tag">PostgreSQL</span><span class="skill-tag">Docker</span><span class="skill-tag">Firebase</span></div></div>
+<div class="about-card"><h3><i data-lucide="briefcase" style="width:16px;height:16px"></i>Experience</h3><div class="timeline-item"><div class="timeline-date">2024 - Present</div><div class="timeline-title">Senior Developer</div><div class="timeline-desc">Tech Startup Jakarta</div></div><div class="timeline-item"><div class="timeline-date">2022 - 2024</div><div class="timeline-title">Full Stack Dev</div><div class="timeline-desc">Digital Agency Bandung</div></div><div class="timeline-item"><div class="timeline-date">2021 - 2022</div><div class="timeline-title">Frontend Dev</div><div class="timeline-desc">Software House Surabaya</div></div></div>
+</div>
+
+<!-- PROJECTS -->
+<div class="section" id="projects">
+<div class="nav-header"><div class="logo">Langit<span>Dev</span></div><button class="menu-btn" onclick="navigateTo('home')"><i data-lucide="arrow-left" style="width:22px;height:22px"></i></button></div>
+<h2 class="section-title"><i data-lucide="folder-kanban" style="width:22px;height:22px"></i>Projects</h2>
+<p class="section-subtitle">Selected works I'm proud of</p>
+<div class="project-card">
+<div class="project-img chat-bg"><i data-lucide="message-circle" style="width:44px;height:44px"></i></div>
+<div class="project-info"><h3>Global Chat</h3><p>Real time chat and you can custom name</p><div class="project-meta"><div class="project-tech"><div class="tech-dot" style="background:#ffca28"></div><div class="tech-dot" style="background:#ff7043"></div><div class="tech-dot" style="background:#42a5f5"></div></div><button class="project-link" onclick="openChatModal()">View <i data-lucide="arrow-up-right" style="width:14px;height:14px"></i></button></div></div>
+</div>
+<div class="project-card">
+<div class="project-img shop-bg"><i data-lucide="shopping-bag" style="width:44px;height:44px"></i></div>
+<div class="project-info"><h3>Shops</h3><p>Digital products store mini</p><div class="project-meta"><div class="project-tech"><div class="tech-dot" style="background:#e040fb"></div><div class="tech-dot" style="background:#00e5ff"></div><div class="tech-dot" style="background:#76ff03"></div></div><button class="project-link" onclick="enterShop()">View <i data-lucide="arrow-up-right" style="width:14px;height:14px"></i></button></div></div>
+</div>
+</div>
+
+<!-- CONTACT -->
+<div class="section" id="contact">
+<div class="nav-header"><div class="logo">Langit<span>Dev</span></div><button class="menu-btn" onclick="navigateTo('home')"><i data-lucide="arrow-left" style="width:22px;height:22px"></i></button></div>
+<h2 class="section-title"><i data-lucide="mail" style="width:22px;height:22px"></i>Contact</h2>
+<p class="section-subtitle">Let's work together</p>
+<div class="contact-form">
+<div class="form-group"><label>Name</label><input type="text" placeholder="Your name" id="nameInput"></div>
+<div class="form-group"><label>Email</label><input type="email" placeholder="your@email.com" id="emailInput"></div>
+<div class="form-group"><label>Message</label><textarea placeholder="Tell me about your project..." id="messageInput"></textarea></div>
+<button class="btn-primary" onclick="sendMessage()"><i data-lucide="send" style="width:18px;height:18px"></i> Send Message</button>
+</div>
+<div class="social-grid">
+<a href="#" class="social-btn" onclick="showToast('GitHub: @langitdev');return false"><i data-lucide="github" style="width:22px;height:22px"></i><span>GitHub</span></a>
+<a href="#" class="social-btn" onclick="showToast('LinkedIn: /in/langitdev');return false"><i data-lucide="linkedin" style="width:22px;height:22px"></i><span>LinkedIn</span></a>
+<a href="#" class="social-btn" onclick="showToast('Twitter: @langitdev');return false"><i data-lucide="twitter" style="width:22px;height:22px"></i><span>Twitter</span></a>
+<a href="#" class="social-btn" onclick="showToast('Email: hello@langit.dev');return false"><i data-lucide="mail" style="width:22px;height:22px"></i><span>Email</span></a>
+</div>
+</div>
+</div>
+
+<!-- SHOP APP -->
+<div class="shop-app" id="shopApp">
+<div class="shop-header">
+<button class="back-btn" onclick="backToMain()"><i data-lucide="arrow-left" style="width:22px;height:22px"></i></button>
+<div class="shop-header-info"><h3>DevStore</h3><p>Digital Products by LangitDev</p></div>
+<button class="shop-cart-btn" onclick="showToast('Cart coming soon!')"><i data-lucide="shopping-cart" style="width:22px;height:22px"></i></button>
+</div>
+<div class="shop-content" id="shopContent">
+<div class="shop-hero"><h2>Premium Digital Products</h2><p>Templates, source code & UI kits for developers</p></div>
+<div class="shop-cats">
+<button class="shop-cat active" onclick="filterProducts('all',this)">All</button>
+<button class="shop-cat" onclick="filterProducts('template',this)">Templates</button>
+<button class="shop-cat" onclick="filterProducts('code',this)">Source Code</button>
+<button class="shop-cat" onclick="filterProducts('ui',this)">UI Kits</button>
+</div>
+<div id="productsContainer"></div>
+</div>
+</div>
+
+<!-- CHAT APP -->
+<div class="chat-app" id="chatApp">
+<div class="chat-header">
+<button class="back-btn" onclick="backToMain()"><i data-lucide="arrow-left" style="width:22px;height:22px"></i></button>
+<div class="chat-header-info"><h3>Global Chat</h3><p><span class="online-dot"></span><span id="onlineCount">0 online</span></p></div>
+<div class="chat-actions"><button onclick="toggleUsersPanel()"><i data-lucide="users" style="width:20px;height:20px"></i></button><button onclick="showToast('More options')"><i data-lucide="more-vertical" style="width:20px;height:20px"></i></button></div>
+</div>
+<div class="chat-msgs" id="chatMsgs">
+<div class="sys-msg">Selamat datang di Global Chat! Mulai ngobrol dengan developer lain.</div>
+<div class="typing-ind" id="typingInd"><div class="tdot"></div><div class="tdot"></div><div class="tdot"></div></div>
+</div>
+<div class="chat-input-area">
+<div class="chat-input-wrap"><input type="text" class="chat-input" id="chatInput" placeholder="Ketik pesan..." maxlength="500"></div>
+<button class="chat-send" onclick="sendChatMessage()"><i data-lucide="send" style="width:20px;height:20px"></i></button>
+</div>
+</div>
+
+<!-- BOTTOM NAV -->
+<div class="bottom-nav" id="bottomNav">
+<button class="nav-item active" onclick="navigateTo('home')" data-nav="home"><i data-lucide="home" style="width:24px;height:24px"></i><span>Home</span></button>
+<button class="nav-item" onclick="navigateTo('about')" data-nav="about"><i data-lucide="user" style="width:24px;height:24px"></i><span>About</span></button>
+<button class="nav-item" onclick="navigateTo('projects')" data-nav="projects"><i data-lucide="briefcase" style="width:24px;height:24px"></i><span>Project</span></button>
+<button class="nav-item" onclick="navigateTo('contact')" data-nav="contact"><i data-lucide="message-circle" style="width:24px;height:24px"></i><span>Contact</span></button>
+</div>
+</div>
+
+<script>
+// PRODUCTS DATA
+const products=[
+{id:1,name:"Portfolio Pro Template",cat:"template",price:150000,old:300000,badge:"hot",img:"https://images.unsplash.com/photo-1460925895917-afdab827c52f?w=400&h=300&fit=crop",desc:"Template portfolio modern dengan animasi smooth, dark theme, dan responsive design. Cocok untuk developer & designer.",feat:["React + Vite","Tailwind CSS","Dark/Light mode","6 Section layouts","SEO optimized"]},
+{id:2,name:"E-Commerce Dashboard",cat:"code",price:250000,old:500000,badge:"hot",img:"https://images.unsplash.com/photo-1551288049-bebda4e38f71?w=400&h=300&fit=crop",desc:"Full source code dashboard e-commerce lengkap dengan chart, order management, dan analytics real-time.",feat:["Next.js 14","TypeScript","PostgreSQL","Chart.js","Authentication"]},
+{id:3,name:"Mobile UI Kit v2.0",cat:"ui",price:99000,old:199000,badge:"new",img:"https://images.unsplash.com/photo-1512941937669-90a1b58e7e9c?w=400&h=300&fit=crop",desc:"50+ screen mobile UI kit untuk Figma. Design system lengkap dengan component yang reusable.",feat:["50+ Screens","Figma Auto Layout","Design System","Dark Mode","Free Updates"]},
+{id:4,name:"SaaS Landing Page",cat:"template",price:175000,old:350000,badge:"",img:"https://images.unsplash.com/photo-1467232004584-a241de8bcf5d?w=400&h=300&fit=crop",desc:"Landing page high-converting untuk produk SaaS. Section pricing, testimoni, CTA, dan FAQ included.",feat:["Astro.js","Tailwind","GSAP Animations","A/B Test Ready","Speed 95+"]},
+{id:5,name:"Chat App Source Code",cat:"code",price:199000,old:399000,badge:"",img:"https://images.unsplash.com/photo-1611746872915-64382b5c76da?w=400&h=300&fit=crop",desc:"Source code chat app real-time lengkap dengan Firebase, typing indicator, dan online presence.",feat:["React Native","Firebase RTDB","Push Notif","Image Share","Group Chat"]},
+{id:6,name:"Admin Dashboard UI",cat:"ui",price:129000,old:259000,badge:"new",img:"https://images.unsplash.com/photo-1551033406-611cf9a28f67?w=400&h=300&fit=crop",desc:"Admin dashboard UI kit dengan 30+ components. Table, form, modal, chart, dan sidebar navigation.",feat:["30+ Components","Figma + Code","Responsive","Customizable","RTL Support"]}
+];
+
+let curDetail=null;
+const WA="6281234567890";
+
+function fmtRp(n){return'Rp '+n.toString().replace(/\B(?=(\d{3})+(?!\d))/g,".")}
+
+function renderProducts(filter='all'){
+const c=document.getElementById('productsContainer');
+c.innerHTML='';
+const f=filter==='all'?products:products.filter(p=>p.cat===filter);
+f.forEach(p=>{
+const d=Math.round((1-p.price/p.old)*100);
+const bc=p.badge==='hot'?'hot':p.badge==='new'?'new':'';
+const bt=p.badge==='hot'?'HOT':p.badge==='new'?'NEW':'';
+const el=document.createElement('div');
+el.className='s-product';
+el.innerHTML=`<div class="s-product-img">${bt?`<span class="s-badge ${bc}">${bt}</span>`:''}<img src="${p.img}" alt="${p.name}" loading="lazy"></div><div class="s-product-info"><h4>${p.name}</h4><p>${p.desc}</p><div class="s-price"><span class="s-price-cur">${fmtRp(p.price)}</span><span class="s-price-old">${fmtRp(p.old)}</span>${d>0?`<span class="s-price-disc">-${d}%</span>`:''}</div><div class="s-actions"><button class="s-btn-buy" onclick="buyProduct(${p.id})"><i data-lucide="shopping-cart" style="width:14px;height:14px"></i> Buy</button><button class="s-btn-dtl" onclick="showDetail(${p.id})"><i data-lucide="eye" style="width:14px;height:14px"></i> Detail</button></div></div>`;
+c.appendChild(el);
+});
+lucide.createIcons();
+}
+
+function filterProducts(cat,btn){
+document.querySelectorAll('.shop-cat').forEach(b=>b.classList.remove('active'));
+btn.classList.add('active');
+renderProducts(cat);
+}
+
+function buyProduct(id){
+const p=products.find(x=>x.id===id);
+if(!p)return;
+const msg=`Halo LangitDev! Saya mau beli *${p.name}* harga ${fmtRp(p.price)}. Masih available?`;
+window.open(`https://wa.me/${WA}?text=${encodeURIComponent(msg)}`,'_blank');
+}
+
+function showDetail(id){
+const p=products.find(x=>x.id===id);
+if(!p)return;
+curDetail=p;
+document.getElementById('detailImgSrc').src=p.img;
+document.getElementById('detailTitle').textContent=p.name;
+document.getElementById('detailPrice').textContent=fmtRp(p.price);
+document.getElementById('detailDesc').textContent=p.desc;
+document.getElementById('detailFeatures').innerHTML=p.feat.map(f=>`<div class="dtl-feat"><i data-lucide="check-circle"></i> ${f}</div>`).join('');
+document.getElementById('detailModal').classList.add('active');
+lucide.createIcons();
+}
+
+function closeDetailModal(){document.getElementById('detailModal').classList.remove('active')}
+function buyFromDetail(){if(curDetail)buyProduct(curDetail.id)}
+
+// FIREBASE
+const fbConfig={
+apiKey:"AIzaSyCXBz99WGJ3T-6cApxC-JfEdWVBWhDJoKM",
+authDomain:"portofolio-d70d9.firebaseapp.com",
+databaseURL:"https://portofolio-d70d9-default-rtdb.asia-southeast1.firebasedatabase.app",
+projectId:"portofolio-d70d9",
+storageBucket:"portofolio-d70d9.firebasestorage.app",
+messagingSenderId:"1087858526671",
+appId:"1:1087858526671:web:c2f66ffeffabba000baaba",
+measurementId:"G-7FEN4Q9FZT"
+};
+
+let db=null,fbReady=false,curUser={name:'Anonymous',id:genId()},inChat=false;
+let msgRef=null,prcRef=null,myPrcRef=null;
+
+try{firebase.initializeApp(fbConfig);db=firebase.database();fbReady=true;console.log('FB OK')}catch(e){console.log('FB err:',e.message)}
+function genId(){return Math.random().toString(36).substr(2,9)+Date.now().toString(36)}
+
+// LUCIDE
+lucide.createIcons();
+
+// CLOCK + BATTERY
+function updateClock(){
+const n=new Date();
+document.getElementById('clock').textContent=n.getHours().toString().padStart(2,'0')+':'+n.getMinutes().toString().padStart(2,'0');
+}
+setInterval(updateClock,1000);updateClock();
+
+// NAV
+function navigateTo(id){
+document.querySelectorAll('.section').forEach(s=>s.classList.remove('active'));
+document.getElementById(id).classList.add('active');
+document.querySelectorAll('.nav-item').forEach(i=>{i.classList.remove('active');if(i.dataset.nav===id)i.classList.add('active')});
+document.getElementById('mainScreen').scrollTop=0;
+}
+
+// TOAST
+function showToast(m){
+const t=document.getElementById('toast');
+t.textContent=m;
+t.classList.add('show');
+setTimeout(()=>t.classList.remove('show'),3000);
+}
+
+// CONTACT
+function sendMessage(){
+const n=document.getElementById('nameInput').value;
+const e=document.getElementById('emailInput').value;
+const m=document.getElementById('messageInput').value;
+if(n&&e&&m){showToast('Message sent!');document.getElementById('nameInput').value='';document.getElementById('emailInput').value='';document.getElementById('messageInput').value='';}
+else showToast('Fill all fields!');
+}
+
+// CHAT
+function openChatModal(){document.getElementById('nameModal').classList.add('active');document.getElementById('usernameInput').focus();}
+function closeChatModal(){document.getElementById('nameModal').classList.remove('active');document.getElementById('usernameInput').value='';}
+function confirmJoinChat(){
+const n=document.getElementById('usernameInput').value.trim();
+if(!n){showToast('Masukkan nama!');return;}
+curUser.name=n;closeChatModal();enterChat();
+}
+document.getElementById('usernameInput').addEventListener('keypress',e=>{if(e.key==='Enter')confirmJoinChat()});
+
+function enterChat(){
+inChat=true;
+document.getElementById('mainScreen').style.display='none';
+document.getElementById('chatApp').classList.add('active');
+document.getElementById('bottomNav').style.display='none';
+addSysMsg(curUser.name+' bergabung ke chat');
+if(fbReady){setupRTDB()}else{
+setTimeout(()=>addMsg('LangitDev','Halo semua! 🚀',false),1000);
+setTimeout(()=>addMsg('User123','Wah keren!',false),2500);
+}
+document.getElementById('chatInput').focus();
+}
+
+function backToMain(){
+inChat=false;
+document.getElementById('chatApp').classList.remove('active');
+document.getElementById('shopApp').classList.remove('active');
+document.getElementById('mainScreen').style.display='block';
+document.getElementById('bottomNav').style.display='flex';
+document.getElementById('usersPanel').classList.remove('active');
+if(fbReady){if(myPrcRef)myPrcRef.remove();if(msgRef)msgRef.off();if(prcRef)prcRef.off();}
+}
+
+function enterShop(){
+document.getElementById('mainScreen').style.display='none';
+document.getElementById('shopApp').classList.add('active');
+document.getElementById('bottomNav').style.display='none';
+renderProducts();
+}
+
+function setupRTDB(){
+const d=db;
+msgRef=d.ref('messages');
+msgRef.limitToLast(50).on('child_added',s=>{
+const v=s.val();
+if(v&&v.uid!==curUser.id)addMsg(v.name,v.text,false,v.ts);
+});
+const onRef=d.ref('.info/connected');
+myPrcRef=d.ref('presence/'+curUser.id);
+onRef.on('value',s=>{
+if(s.val()===true){myPrcRef.onDisconnect().remove();myPrcRef.set({name:curUser.name,online:true,joined:firebase.database.ServerValue.TIMESTAMP});}
+});
+prcRef=d.ref('presence');
+prcRef.on('value',s=>{
+const u=s.val()||{};
+document.getElementById('onlineCount').textContent=Object.keys(u).length+' online';
+updUsers(u);
+});
+}
+
+function updUsers(u){
+const l=document.getElementById('usersList');
+l.innerHTML='';
+Object.values(u).forEach(v=>{
+const d=document.createElement('div');
+d.className='user-item';
+d.innerHTML='<div class="user-dot"></div>'+esc(v.name||'Anonymous');
+l.appendChild(d);
+});
+}
+
+function toggleUsersPanel(){document.getElementById('usersPanel').classList.toggle('active')}
+
+function sendChatMessage(){
+const i=document.getElementById('chatInput');
+const t=i.value.trim();
+if(!t)return;
+i.value='';
+addMsg(curUser.name,t,true);
+if(fbReady)db.ref('messages').push({name:curUser.name,uid:curUser.id,text:t,ts:Date.now()});
+}
+document.getElementById('chatInput').addEventListener('keypress',e=>{if(e.key==='Enter')sendChatMessage()});
+
+function addMsg(n,t,me,ts){
+const c=document.getElementById('chatMsgs');
+const ty=document.getElementById('typingInd');
+const d=document.createElement('div');
+d.className='msg '+(me?'me':'other');
+const tm=ts?fmtTime(new Date(ts)):fmtTime(new Date());
+d.innerHTML=(me?'':`<div class="msg-sender">${esc(n)}</div>`)+`<div class="msg-bubble">${esc(t)}</div><div class="msg-time">${tm}</div>`;
+c.insertBefore(d,ty);
+c.scrollTop=c.scrollHeight;
+}
+
+function addSysMsg(t){
+const c=document.getElementById('chatMsgs');
+const ty=document.getElementById('typingInd');
+const d=document.createElement('div');
+d.className='sys-msg';
+d.textContent=t;
+c.insertBefore(d,ty);
+c.scrollTop=c.scrollHeight;
+}
+
+function fmtTime(d){return d.getHours().toString().padStart(2,'0')+':'+d.getMinutes().toString().padStart(2,'0')}
+function esc(t){const d=document.createElement('div');d.textContent=t;return d.innerHTML}
+
+// PARTICLES
+const pc=document.getElementById('particles');
+for(let i=0;i<25;i++){
+const p=document.createElement('div');
+p.className='particle';
+p.style.left=Math.random()*100+'%';
+p.style.top=Math.random()*100+'%';
+p.style.animationDelay=Math.random()*15+'s';
+p.style.animationDuration=(10+Math.random()*10)+'s';
+pc.appendChild(p);
+}
+
+// ANIMATE STATS
+window.addEventListener('load',()=>{
+document.querySelectorAll('.stat-card').forEach((c,i)=>{
+setTimeout(()=>{c.style.opacity='0';c.style.transform='translateY(20px)';c.style.transition='all .5s ease';setTimeout(()=>{c.style.opacity='1';c.style.transform='translateY(0)'},50);},i*100);
+});
+});
+</script>
+</body>
+</html>
